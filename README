@@ -1,0 +1,23 @@
+HGA: Haskell Geometric Algebra
+issac.trotts@gmail.com
+Issac Trotts
+============
+
+This is an implementation of Geometric Algebra[1], also known as Clifford
+Algebra.  It allows high-dimensional computations by representing multivectors
+as expression trees with numerical leaves.
+
+$ ghci
+> :load "Ga.hs"
+
+-- $. is the dot product.
+-- * is the Geometric Product
+> V [1,2] $. V[3, 4] * V[5, 6]
+Gp (Dot (V [1.0,2.0]) (V [3.0,4.0])) (V [5.0,6.0])
+
+-- /\ is the wedge product
+> simplify $ V[1,1] /\ V[1,1]
+S 0.0
+
+[1] http://en.wikipedia.org/wiki/Geometric_algebra
+
