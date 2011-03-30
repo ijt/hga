@@ -24,8 +24,9 @@ instance Floating a => Num (Ga a) where
   abs (V v) = S $ sqrt $ sum $ map (^2) v
   abs _ = undefined
 
+  -- TODO(issac): Return signum for pseudoscalars.
   signum (S x) = S $ signum x
-  signum x = error $ show x ++ " has no signum"
+  signum x = undefined
 
   fromInteger i = S $ fromInteger i
 
