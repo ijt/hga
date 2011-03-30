@@ -29,7 +29,8 @@ instance Floating a => Num (Ga a) where
 
   fromInteger i = S $ fromInteger i
 
-  -- a / b = a `Div` b
+instance Fractional a => Fractional (Ga a) where
+  a / b = a `Div` b
 
 a /\ b = a `Wedge` b
 a $. b = a `Dot` b
@@ -67,6 +68,7 @@ so = simplifyOnce
 simplify :: Floating a => Ga a -> Ga a
 simplify = findFixedPoint simplifyOnce
 
+-- TODO: Deal with possible oscillations due to floating point issues.
 findFixedPoint :: Eq a => (a -> a) -> a -> a
 findFixedPoint f x =
   if y == x then y else findFixedPoint f y
