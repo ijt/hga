@@ -2,8 +2,10 @@
 
 module Ga where
 
+import Ratio
+
 -- Ga means Geometric Algebra object
-data Floating a => Ga a = S a
+data Ga a = S a
         | V [a]
         | Wedge (Ga a) (Ga a)
         | Dot (Ga a) (Ga a)
@@ -15,7 +17,7 @@ data Floating a => Ga a = S a
         | Div (Ga a) (Ga a)
         deriving (Show, Eq)
 
-instance Floating a => Num (Ga a) where
+instance (Floating a, Num a) => Num (Ga a) where
   a + b = a `Plus` b
   a - b = a `Minus` b
   a * b = a `Gp` b
@@ -30,8 +32,10 @@ instance Floating a => Num (Ga a) where
 
   fromInteger i = S $ fromInteger i
 
-instance Fractional a => Fractional (Ga a) where
+instance (Floating a, Fractional a) => Fractional (Ga a) where
   a / b = a `Div` b
+
+  fromRational rat = (fromInteger $ numerator rat) `Div` (fromInteger $ denominator rat)
 
 a /\ b = a `Wedge` b
 a $. b = a `Dot` b
