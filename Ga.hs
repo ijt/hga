@@ -56,6 +56,7 @@ simplifyOnce (a `Wedge` S 0) = S 0
 simplifyOnce (a `Wedge` b) | a == b  = S 0
 simplifyOnce (S 0 `Dot` b) = S 0
 simplifyOnce (a `Dot` S 0) = S 0
+simplifyOnce (V u `Dot` V v) = S $ sum $ zipWith (*) u v
 -- Recurse if no patterns matched:
 simplifyOnce (a `Wedge` b) = so a /\ so b
 simplifyOnce (a `Dot` b) = so a `Dot` so b
@@ -94,4 +95,16 @@ getKpart k (a `Wedge` b) =
     sum [getKpart i a /\ getKpart (k-i) b | i <- [1..k-1]]
     
 -- TODO: Write the rest of getKpart.
+
+-- TESTS
+
+assertEqual :: (Eq a, Show a) => a -> a -> String -> IO ()
+assertEqual expected actual msg =
+    if actual /= expected
+        then error $ msg ++ ": " ++ show actual ++ " /= " ++ show expected
+        else return ()
+
+main = do
+    assertEqual 11 (simplify $ (V[1, 2] $. V[3,4])) "Dot product failed"
+    putStrLn "All tests passed."
 
