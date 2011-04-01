@@ -39,6 +39,11 @@ instance Num Mv where
 
     fromInteger i = (fromIntegral i) `e` []
 
+    abs x = BladeSum [Blade (mag x) []]
+
+mag :: Mv -> Float
+mag mv = sqrt $ sum $ map bladeMag2 $ mvTerms mv
+
 stringJoin :: String -> [String] -> String
 stringJoin sep parts =
     concat $ intersperse sep parts
@@ -139,6 +144,23 @@ bIsOfGrade :: Blade -> Int -> Bool
 blade `bIsOfGrade` k =
     (length $ bIndices blade) == k
 
+-- Imaginary-like element in the 1,2 plane
+i = 1 `e` [1,2]
+
+-- Multivector exponential
+mvExp :: Mv -> Mv
+-- TODO: Find a better way than "`e`[]"
+mvExp x = sum [(1.0 / factorialf k)`e`[] * (x^k) | k <- [0..30]]
+
+factorialf :: Integer -> Float
+factorialf k = fromIntegral $ factorial k
+ 
+factorial :: Integer -> Integer
+factorial k = product [1..k]
+
+bladeMag2 :: Blade -> Float
+bladeMag2 b = (bScale b)^2
+
 -- TESTS
 
 -- Copied from Ga.hs
@@ -146,6 +168,12 @@ assertEqual :: (Eq a, Show a) => a -> a -> String -> IO ()
 assertEqual expected actual msg =
     if actual /= expected
         then error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual
+        else putStrLn (msg ++ " passed.")
+
+assertAlmostEqual :: Mv -> Mv -> Float -> String -> IO ()
+assertAlmostEqual expected actual tol msg =
+    if (mag $ expected - actual) > tol
+        then error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual ++ " within tolerance " ++ show tol
         else putStrLn (msg ++ " passed.")
 
 main = do
@@ -179,13 +207,19 @@ main = do
     assertEqual 0 ((1`e`[1]) `wedge` (2`e`[1])) "Wedge of colinear vectors is 0"
     assertEqual (-2`e`[1,2]) ((1`e`[2]) `wedge` (2`e`[1])) "Wedge of orth vectors"
 
+    -- Exponentiation, other Floating typeclass functions.
+    -- http://www.haskell.org/onlinereport/basic.html
+    assertAlmostEqual 1.0 (mvExp 0) 1e-6 "Exponential of 0"
+    assertAlmostEqual 2.7182818284 (mvExp 1) 1e-6 "Exponential of 1"
+    assertAlmostEqual 22026.465794806718 (mvExp 10) 1e-6 "Exponential of 10"
+    -- Fixme: Need Floating instance for Mv to make the next line look better.
+    assertAlmostEqual (-1) (mvExp (i*pi`e`[])) 1e-6 "Exponential of i"
+
     -- Inverse
 
     -- Cross product
  
     -- Projection
-    
-    -- Exponentiation
     
     -- Rotation by spinors
    
