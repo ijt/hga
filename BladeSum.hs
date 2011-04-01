@@ -178,4 +178,18 @@ main = do
     -- Wedge product
     assertEqual 0 ((1`e`[1]) `wedge` (2`e`[1])) "Wedge of colinear vectors is 0"
     assertEqual (-2`e`[1,2]) ((1`e`[2]) `wedge` (2`e`[1])) "Wedge of orth vectors"
+
+    -- Inverse
+
+    -- Cross product
  
+    -- Projection
+    
+    -- Exponentiation
+    
+    -- Rotation by spinors
+   
+    -- Conversion to and from complex numbers
+
+    -- Easier construction of vectors. ga [1,2,3]
+
