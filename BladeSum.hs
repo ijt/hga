@@ -15,18 +15,16 @@ instance Show Mv where
     show (BladeSum []) = "0"
     show a = stringJoin " + " $ map show $ mvTerms a
 
-stringJoin :: String -> [String] -> String
-stringJoin sep parts =
-    concat $ intersperse sep parts
+instance Fractional Mv where
+    fromRational r = (fromRational r) `e` []
 
 -- Scaled basis blade: the pseudoscalar for the space it spans.
--- These should always be returned in normal form so everyone can
--- assume that any blade passed in is already in normal form.
+-- These should always be kept in normal form.
 data Blade = Blade {bScale :: Float, bIndices :: [Int]} deriving (Ord, Eq)
 
 instance Show Blade where
-    show b =
-        (show $ bScale b) ++ "e" ++ (show $ bIndices b)
+    show (Blade s []) = show s
+    show b = (show $ bScale b) ++ "e" ++ (show $ bIndices b)
 
 -- Constructs a multivector from a scaled blade.
 e :: Float -> [Int] -> Mv
@@ -36,10 +34,14 @@ instance Num Mv where
     a + b = mvNormalForm $ BladeSum (mvTerms a ++ mvTerms b)
     a - b = mvNormalForm $ BladeSum (mvTerms a ++ (map bladeNeg $ mvTerms b))
 
-    -- 
+    -- Geometric (Clifford) product
     a * b = mvNormalForm $ BladeSum [bladeMul x y | x <- mvTerms a, y <- mvTerms b]
 
     fromInteger i = (fromIntegral i) `e` []
+
+stringJoin :: String -> [String] -> String
+stringJoin sep parts =
+    concat $ intersperse sep parts
 
 bladeNeg :: Blade -> Blade
 bladeNeg b = Blade (- bScale b) (bIndices b)
@@ -149,7 +151,10 @@ assertEqual expected actual msg =
 main = do
     -- Show
     assertEqual "0" (show (BladeSum [])) "Show an empty multivector"
-    assertEqual "0" (show (0 `e` [1])) "Show a zero-scaled blade"
+    assertEqual "0" (show (0 :: Mv)) "Show 0"
+    assertEqual "1.0" (show (1 `e` [])) "Show 1"
+    assertEqual "1.5" (show (1.5 :: Mv)) "Show 1.5"
+    assertEqual "0" (show (0 `e` [1])) "Show a zero-scaled vector"
 
     -- Construction
     assertEqual 1 (1`e`[]) "Scalar construction 1 == 1e1"
