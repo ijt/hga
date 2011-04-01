@@ -19,5 +19,51 @@ Gp (Dot (V [1.0,2.0]) (V [3.0,4.0])) (V [5.0,6.0])
 > simplify $ V[1,1] /\ V[1,1]
 S 0.0
 
+
+Things to do:
+    See if it's possible to make it more strongly typed.
+    For example, the dot product of two vectors is always a scalar.
+
+    Wedge of colinear elements should be 0.
+        ...
+
+    Definition of spaces.
+        Expressions can be evaluated in a space.  How does that work?  Well, you
+        project into the space defined by some blade B.
+
+        For vectors u and v, you can project u onto v like this:
+            proj_v u
+            = (u . v / ||v||) * v / ||v||
+            = u . v * v / v^2
+            = (u v - u ^ v) inv(v)
+            = u - u^v/v
+            = u - (u v - v u) / v
+            = u - u - v u / v
+            = - v u inv(v)
+
+        Is the generalization for blades like this?
+            proj_B u = - B u inv(B)
+
+    Laplace expansion:
+        a . (b /\ c) = a . b c - a . c b
+
+        What's the generalization of this to bigger blades?
+
+    Construction of basis blades:
+        e [] = 1.0 : scalar
+        e [1] : vector
+        e [2] : vector
+        e [1,2] : bivector
+        e [1,2,3] : trivector
+
+    Commutativity of scalars with everything:
+
+    Scaled basis blades:
+        2 `E` [1,2]
+
+    Computation with Geometric products:
+        ...
+
+
 [1] http://en.wikipedia.org/wiki/Geometric_algebra
 

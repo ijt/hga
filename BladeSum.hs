@@ -11,6 +11,7 @@ instance Eq Mv where
 
 -- Scaled basis blade: the pseudoscalar for the space it spans.
 -- These are stupid. If you ask for equality, no normalization is done.
+-- TODO(ijt): Make a BladeNormalForm type that guarantees goodness.
 data Blade = Blade {bScale :: Float, bIndices :: [Int]} deriving (Show, Ord, Eq)
 
 -- Constructs a multivector from a scaled blade.
@@ -82,6 +83,14 @@ findFixedPoint f x =
   if y == x then y else findFixedPoint f y
   where y = f x
 
+getGrade :: Int -> Mv -> Mv
+getGrade k mv =
+    BladeSum $ filter (`bIsOfGrade` k) (mvTerms mv)
+
+bIsOfGrade :: Blade -> Int -> Bool
+blade `bIsOfGrade` k =
+    (length $ bIndices $ bladeNormalForm blade) == k
+
 -- TESTS
 
 -- Copied from Ga.hs
@@ -96,4 +105,10 @@ main = do
     assertEqual 6 (2`e`[1] * 3`e`[1]) "Product of colinear vectors"
     assertEqual (-6`e`[1,2]) (2`e`[2] * 3`e`[1]) "Product of orthogonal vectors"
     assertEqual (6 - 6`e`[1,2]) ((2`e`[1] + 2`e`[2]) * 3`e`[1]) "Complex-like result"
+    --assertEqual 12 ((4`e`[1] + 2`e`[2]) `dot` 3`e`[1]) "Dot product"
+    assertEqual 3 (getGrade 0 3) "Zero grade part of a scalar"
+    assertEqual 0 (getGrade 0 (1 `e` [1])) "Zero grade part of a vector"
+    assertEqual 0 (getGrade 1 3) "One-grade part of a scalar"
+    assertEqual 3 (getGrade 0 (3 `e` [1,1])) "Grade extraction with annihilation"
+    assertEqual 0 (getGrade 2 (3 `e` [1,1])) "Grade extraction with annihilation part 2"
  
