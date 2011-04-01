@@ -185,7 +185,7 @@ main = do
     assertEqual "0" (show (0 `e` [1])) "Show a zero-scaled vector"
 
     -- Construction
-    assertEqual 1 (1`e`[]) "Scalar construction 1 == 1e1"
+    assertEqual 1 (1`e`[]) "Scalar construction 1 == 1e[]"
 
     -- Geometric product
     assertEqual 6 (2`e`[1] * 3`e`[1]) "Product of colinear vectors"
