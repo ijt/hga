@@ -24,7 +24,7 @@ data Blade = Blade {bScale :: Float, bIndices :: [Int]} deriving (Ord, Eq)
 
 instance Show Blade where
     show (Blade s []) = show s
-    show b = (show $ bScale b) ++ "e" ++ (show $ bIndices b)
+    show b = (show $ bScale b) ++ "`e`" ++ (show $ bIndices b)
 
 -- Constructs a multivector from a scaled blade.
 e :: Float -> [Int] -> Mv
