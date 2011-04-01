@@ -12,8 +12,8 @@ instance Eq Mv where
         mvTerms (mvNormalForm a) == mvTerms (mvNormalForm b)
 
 instance Show Mv where
-    show a =
-        stringJoin " + " $ map show $ mvTerms a
+    show (BladeSum []) = "0"
+    show a = stringJoin " + " $ map show $ mvTerms a
 
 stringJoin :: String -> [String] -> String
 stringJoin sep parts =
@@ -106,7 +106,11 @@ getGrade k mv =
 
 dot :: Mv -> Mv -> Mv
 dot a b =
-   BladeSum [x `bDot` y | x <- mvTerms a, y <- mvTerms b]
+    mvNormalForm $ BladeSum [x `bDot` y | x <- mvTerms a, y <- mvTerms b]
+
+wedge :: Mv -> Mv -> Mv
+wedge a b =
+    mvNormalForm $ BladeSum [x `bWedge` y | x <- mvTerms a, y <- mvTerms b]
 
 grade :: Blade -> Int
 grade b = length $ bIndices b
@@ -120,6 +124,13 @@ bDot x y =
     bladeNormalForm $ bGetGrade k xy
         where
             k = (abs (grade x) - (grade y))
+            xy = bladeMul x y
+
+bWedge :: Blade -> Blade -> Blade
+bWedge x y =
+    bladeNormalForm $ bGetGrade k xy
+        where
+            k = (abs (grade x) + (grade y))
             xy = bladeMul x y
 
 bIsOfGrade :: Blade -> Int -> Bool
@@ -136,15 +147,30 @@ assertEqual expected actual msg =
         else putStrLn (msg ++ " passed.")
 
 main = do
+    -- Show
+    assertEqual "0" (show (BladeSum [])) "Show an empty multivector"
+    assertEqual "0" (show (0 `e` [1])) "Show a zero-scaled blade"
+
+    -- Construction
     assertEqual 1 (1`e`[]) "Scalar construction 1 == 1e1"
+
+    -- Geometric product
     assertEqual 6 (2`e`[1] * 3`e`[1]) "Product of colinear vectors"
     assertEqual (-6`e`[1,2]) (2`e`[2] * 3`e`[1]) "Product of orthogonal vectors"
     assertEqual (6 - 6`e`[1,2]) ((2`e`[1] + 2`e`[2]) * 3`e`[1]) "Complex-like result"
-    assertEqual 1 ((1`e`[1]) `dot` (1`e`[1])) "Dot product e1 . e1"
-    assertEqual 12 ((4`e`[1] + 2`e`[2]) `dot` (3`e`[1])) "Dot product"
+
+    -- Grade extraction
     assertEqual 3 (getGrade 0 3) "Zero grade part of a scalar"
     assertEqual 0 (getGrade 0 (1 `e` [1])) "Zero grade part of a vector"
     assertEqual 0 (getGrade 1 3) "One-grade part of a scalar"
     assertEqual 3 (getGrade 0 (3 `e` [1,1])) "Grade extraction with annihilation"
     assertEqual 0 (getGrade 2 (3 `e` [1,1])) "Grade extraction with annihilation part 2"
+
+    -- Dot product
+    assertEqual 1 ((1`e`[1]) `dot` (1`e`[1])) "Dot product e1 . e1"
+    assertEqual 12 ((4`e`[1] + 2`e`[2]) `dot` (3`e`[1])) "Dot product"
+
+    -- Wedge product
+    assertEqual 0 ((1`e`[1]) `wedge` (2`e`[1])) "Wedge of colinear vectors is 0"
+    assertEqual (-2`e`[1,2]) ((1`e`[2]) `wedge` (2`e`[1])) "Wedge of orth vectors"
  
