@@ -40,6 +40,7 @@ Things to do:
             = u - (u v - v u) / v
             = u - u - v u / v
             = - v u inv(v)
+            = - v (u / v)
 
         Is the generalization for blades like this?
             proj_B u = - B u inv(B)
