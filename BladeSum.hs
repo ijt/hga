@@ -18,6 +18,7 @@ instance Show Mv where
 
 instance Fractional Mv where
     fromRational r = BladeSum [Blade (floatFromRational r) []]
+    recip x = (s $ 1 / mag x) * mvRev x 
 
 floatFromRational :: Rational -> Float
 floatFromRational r = fromRational r
@@ -181,9 +182,6 @@ mvRev a = mvNormalForm $ BladeSum $ map bReverse $ mvTerms a
 
 bReverse :: Blade -> Blade
 bReverse b = bladeNormalForm $ Blade (bScale b) (reverse $ bIndices b)
-
--- inv :: Mv -> Mv
--- inv a = (1.0 / abs a) reverse a
 
 -- TESTS
 
