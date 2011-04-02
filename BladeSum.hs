@@ -1,6 +1,7 @@
 module BladeSum where
 
 import Data.List
+import qualified Test.QuickCheck as QC
 
 data NamedThing a = WithName { name :: String, contents :: a } deriving Show
 
@@ -18,7 +19,8 @@ instance Show Mv where
 
 instance Fractional Mv where
     fromRational r = BladeSum [Blade (floatFromRational r) []]
-    recip x = (s $ 1 / mag x) * mvRev x 
+    recip x = mvNormalForm $ (scalar $ 1 / (mag x)^2) * mvRev x 
+    a / b = mvNormalForm $ a * recip b
 
 floatFromRational :: Rational -> Float
 floatFromRational r = fromRational r
@@ -36,8 +38,12 @@ e :: Float -> [Int] -> Mv
 s `e` indices = mvNormalForm $ BladeSum [Blade s indices]
 
 -- Scalar constructor
-s :: Float -> Mv
-s x = x `e` []
+scalar :: Float -> Mv
+scalar x = x `e` []
+
+-- Vector constructor
+vector :: [Float] -> Mv
+vector x = mvNormalForm $ BladeSum [Blade xi [i] | (xi, i) <- zip x [1..]]
 
 instance Num Mv where
     a + b = mvNormalForm $ BladeSum (mvTerms a ++ mvTerms b)
@@ -51,7 +57,7 @@ instance Num Mv where
     abs x = (mag x) `e` []
 
     signum (BladeSum [Blade scale []]) = (signum scale) `e` []
-    signum (BladeSum []) = s 0
+    signum (BladeSum []) = scalar 0
     signum _ = undefined
 
 mag :: Mv -> Float
@@ -82,7 +88,7 @@ combineLikeTerms :: [Blade] -> [Blade]
 combineLikeTerms [] = []
 combineLikeTerms [x] = [x]
 combineLikeTerms (x:y:rest) | (bIndices x == bIndices y) =
-                                Blade (bScale x + bScale y) (bIndices x) : combineLikeTerms rest
+                                combineLikeTerms $ (Blade (bScale x + bScale y) (bIndices x)) : rest
                             | otherwise = x : combineLikeTerms (y:rest)
 
 bladeNormalForm :: Blade -> Blade
@@ -183,6 +189,16 @@ mvRev a = mvNormalForm $ BladeSum $ map bReverse $ mvTerms a
 bReverse :: Blade -> Blade
 bReverse b = bladeNormalForm $ Blade (bScale b) (reverse $ bIndices b)
 
+-- Approximate equality
+tol :: Float
+tol = 1e-6
+
+(~=) :: Mv -> Mv -> Bool
+a ~= b = (absDiff a b) <= tol
+
+absDiff :: Mv -> Mv -> Float
+absDiff a b = mag $ a - b
+
 -- TESTS
 
 -- Copied from Ga.hs
@@ -192,11 +208,11 @@ assertEqual expected actual msg =
         then error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual
         else putStrLn (msg ++ " passed.")
 
-assertAlmostEqual :: Mv -> Mv -> Float -> String -> IO ()
-assertAlmostEqual expected actual tol msg =
-    if (mag $ expected - actual) > tol
-        then error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual ++ " within tolerance " ++ show tol
-        else putStrLn (msg ++ " passed.")
+assertAlmostEqual :: Mv -> Mv -> String -> IO ()
+assertAlmostEqual expected actual msg =
+    if expected ~= actual
+        then putStrLn (msg ++ " passed.")
+        else error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual ++ " within tolerance " ++ show tol
 
 main :: IO ()
 main = do
@@ -231,21 +247,25 @@ main = do
     assertEqual (-2`e`[1,2]) ((1`e`[2]) `wedge` (2`e`[1])) "Wedge of orth vectors"
 
     -- Num typeclass
-    assertEqual (-1) (signum $ s $ -1) "Signum of -1"
-    assertEqual 0 (signum $ s 0) "Signum of 0"
-    assertEqual 1 (signum $ s 1) "Signum of 1"
+    assertEqual (-1) (signum $ scalar $ -1) "Signum of -1"
+    assertEqual 0 (signum $ scalar 0) "Signum of 0"
+    assertEqual 1 (signum $ scalar 1) "Signum of 1"
 
     -- Division
-    assertEqual 1 (s 1 / s 1) "One over one"
-    assertEqual 0 (s 0 / s 1) "Zero over one"
+    assertEqual 1 (scalar 1 / scalar 1) "One over one"
+    assertEqual 0 (scalar 0 / scalar 1) "Zero over one"
+
+    -- Approximate equality
+    putStrLn "Everything approximately equals itself."
+    QC.quickCheck prop_selfApproxEqual
 
     -- Exponentiation, other Floating typeclass functions.
     -- http://www.haskell.org/onlinereport/basic.html
-    assertAlmostEqual 1.0 (mvExp 0) 1e-6 "Exponential of 0"
-    assertAlmostEqual 2.7182818284 (mvExp 1) 1e-6 "Exponential of 1"
-    assertAlmostEqual 22026.465794806718 (mvExp 10) 1e-6 "Exponential of 10"
+    assertAlmostEqual 1.0 (mvExp 0) "Exponential of 0"
+    assertAlmostEqual 2.7182818284 (mvExp 1) "Exponential of 1"
+    assertAlmostEqual 22026.465794806718 (mvExp 10) "Exponential of 10"
     -- Fixme: Need Floating instance for Mv to make the next line look better.
-    assertAlmostEqual (-1) (mvExp (i*pi`e`[])) 1e-6 "Exponential of i"
+    assertAlmostEqual (-1) (mvExp (i*pi`e`[])) "Exponential of i"
 
     -- Reverse
     assertEqual 1 (mvRev 1) "Reverse of a scalar is the same"
@@ -254,6 +274,8 @@ main = do
     assertEqual (-1`e`[1,2,3]) (mvRev $ 1`e`[1,2,3]) "Reverse of a trivector is negated"
 
     -- Inverse
+    putStrLn "vector inverse:"
+    QC.quickCheck prop_vectorInverse
 
     -- Cross product
  
@@ -266,4 +288,12 @@ main = do
     -- Easier construction of vectors. ga [1,2,3]
 
     -- Parsing of a little expression language
+
+prop_vectorInverse coords = (sum $ map abs coords) /= 0 QC.==> (v / v) ~= 1
+    where 
+        v = vector coords 
+        types = (coords :: [Float])
+
+prop_selfApproxEqual x = scalar x ~= scalar x
+    where types = x :: Float
 
