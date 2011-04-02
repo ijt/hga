@@ -5,6 +5,7 @@ import Data.List
 data NamedThing a = WithName { name :: String, contents :: a } deriving Show
 
 -- Multivector
+-- These should always be returned in normal form.
 data Mv = BladeSum { mvTerms :: [Blade] }
 
 instance Eq Mv where
@@ -16,10 +17,13 @@ instance Show Mv where
     show a = stringJoin " + " $ map show $ mvTerms a
 
 instance Fractional Mv where
-    fromRational r = (fromRational r) `e` []
+    fromRational r = BladeSum [Blade (floatFromRational r) []]
+
+floatFromRational :: Rational -> Float
+floatFromRational r = fromRational r
 
 -- Scaled basis blade: the pseudoscalar for the space it spans.
--- These should always be kept in normal form.
+-- These should always be returned in normal form.
 data Blade = Blade {bScale :: Float, bIndices :: [Int]} deriving (Ord, Eq)
 
 instance Show Blade where
@@ -30,6 +34,10 @@ instance Show Blade where
 e :: Float -> [Int] -> Mv
 s `e` indices = mvNormalForm $ BladeSum [Blade s indices]
 
+-- Scalar constructor
+s :: Float -> Mv
+s x = x `e` []
+
 instance Num Mv where
     a + b = mvNormalForm $ BladeSum (mvTerms a ++ mvTerms b)
     a - b = mvNormalForm $ BladeSum (mvTerms a ++ (map bladeNeg $ mvTerms b))
@@ -39,7 +47,11 @@ instance Num Mv where
 
     fromInteger i = (fromIntegral i) `e` []
 
-    abs x = BladeSum [Blade (mag x) []]
+    abs x = (mag x) `e` []
+
+    signum (BladeSum [Blade scale []]) = (signum scale) `e` []
+    signum (BladeSum []) = s 0
+    signum _ = undefined
 
 mag :: Mv -> Float
 mag mv = sqrt $ sum $ map bladeMag2 $ mvTerms mv
@@ -216,6 +228,13 @@ main = do
     assertEqual 0 ((1`e`[1]) `wedge` (2`e`[1])) "Wedge of colinear vectors is 0"
     assertEqual (-2`e`[1,2]) ((1`e`[2]) `wedge` (2`e`[1])) "Wedge of orth vectors"
 
+    -- Num typeclass
+    assertEqual (-1) (signum $ s $ -1) "Signum of -1"
+    assertEqual 0 (signum $ s 0) "Signum of 0"
+    assertEqual 1 (signum $ s 1) "Signum of 1"
+
+    -- Division
+
     -- Exponentiation, other Floating typeclass functions.
     -- http://www.haskell.org/onlinereport/basic.html
     assertAlmostEqual 1.0 (mvExp 0) 1e-6 "Exponential of 0"
@@ -241,4 +260,6 @@ main = do
     -- Conversion to and from complex numbers
 
     -- Easier construction of vectors. ga [1,2,3]
+
+    -- Parsing of a little expression language
 
