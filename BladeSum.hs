@@ -161,6 +161,15 @@ factorial k = product [1..k]
 bladeMag2 :: Blade -> Float
 bladeMag2 b = (bScale b)^2
 
+mvRev :: Mv -> Mv
+mvRev a = mvNormalForm $ BladeSum $ map bReverse $ mvTerms a
+
+bReverse :: Blade -> Blade
+bReverse b = bladeNormalForm $ Blade (bScale b) (reverse $ bIndices b)
+
+-- inv :: Mv -> Mv
+-- inv a = (1.0 / abs a) reverse a
+
 -- TESTS
 
 -- Copied from Ga.hs
@@ -214,6 +223,12 @@ main = do
     assertAlmostEqual 22026.465794806718 (mvExp 10) 1e-6 "Exponential of 10"
     -- Fixme: Need Floating instance for Mv to make the next line look better.
     assertAlmostEqual (-1) (mvExp (i*pi`e`[])) 1e-6 "Exponential of i"
+
+    -- Reverse
+    assertEqual 1 (mvRev 1) "Reverse of a scalar is the same"
+    assertEqual (1`e`[1]) (mvRev $ 1`e`[1]) "Reverse of a vector is the same"
+    assertEqual (-1`e`[1,2]) (mvRev $ 1`e`[1,2]) "Reverse of a bivector is negated"
+    assertEqual (-1`e`[1,2,3]) (mvRev $ 1`e`[1,2,3]) "Reverse of a trivector is negated"
 
     -- Inverse
 
