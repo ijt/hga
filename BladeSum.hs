@@ -63,12 +63,14 @@ stringJoin sep parts =
 bladeNeg :: Blade -> Blade
 bladeNeg b = Blade (- bScale b) (bIndices b)
 
+bladeMul :: Blade -> Blade -> Blade
 bladeMul x y =
     bladeNormalForm $ Blade (bScale x * bScale y) (bIndices x ++ bIndices y)
 
 bladeNonZero :: Blade -> Bool
 bladeNonZero b = bScale b /= 0
 
+mvNormalForm :: Mv -> Mv
 mvNormalForm mv =
     BladeSum $ filter bladeNonZero $ combineLikeTerms $ sortByIndices $ map bladeNormalForm $ mvTerms mv
 
@@ -82,6 +84,7 @@ combineLikeTerms (x:y:rest) | (bIndices x == bIndices y) =
                                 Blade (bScale x + bScale y) (bIndices x) : combineLikeTerms rest
                             | otherwise = x : combineLikeTerms (y:rest)
 
+bladeNormalForm :: Blade -> Blade
 bladeNormalForm (Blade scale indices) =
     Blade scale' normalizedIndices
     where
@@ -112,7 +115,6 @@ signedSortPass (x:y:rest) sgn | y < x = let (rest', sgn') = signedSortPass (x:re
                               | otherwise = let (rest', sgn') = signedSortPass (y:rest) sgn
                                             in (x:rest', sgn')
  
--- Copied from Ga.hs
 findFixedPoint :: Eq a => (a -> a) -> a -> a
 findFixedPoint f x =
   if y == x then y else findFixedPoint f y
@@ -157,7 +159,8 @@ blade `bIsOfGrade` k =
     (length $ bIndices blade) == k
 
 -- Imaginary-like element in the 1,2 plane
-i = 1 `e` [1,2]
+i :: Mv
+i = 1`e`[1,2]
 
 -- Multivector exponential
 mvExp :: Mv -> Mv
@@ -197,6 +200,7 @@ assertAlmostEqual expected actual tol msg =
         then error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual ++ " within tolerance " ++ show tol
         else putStrLn (msg ++ " passed.")
 
+main :: IO ()
 main = do
     -- Show
     assertEqual "0" (show (BladeSum [])) "Show an empty multivector"
@@ -234,6 +238,8 @@ main = do
     assertEqual 1 (signum $ s 1) "Signum of 1"
 
     -- Division
+    assertEqual 1 (s 1 / s 1) "One over one"
+    assertEqual 0 (s 0 / s 1) "Zero over one"
 
     -- Exponentiation, other Floating typeclass functions.
     -- http://www.haskell.org/onlinereport/basic.html
