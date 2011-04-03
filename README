@@ -3,68 +3,31 @@ issac.trotts@gmail.com
 Issac Trotts
 ============
 
-This is an implementation of Geometric Algebra[1], also known as Clifford
-Algebra.  It allows high-dimensional computations by representing multivectors
-as expression trees with numerical leaves.
+This is an implementation of Geometric Algebra, also known as Clifford
+Algebra. For ideas on how to use it, see
+http://en.wikipedia.org/wiki/Geometric_algebra.
 
-$ ghci
-> :load "Ga.hs"
+Examples:
 
--- $. is the dot product.
--- * is the Geometric Product
-> V [1,2] $. V[3, 4] * V[5, 6]
-Gp (Dot (V [1.0,2.0]) (V [3.0,4.0])) (V [5.0,6.0])
+    $ ghci
+    Prelude> :load "Hga.hs"
+    [1 of 1] Compiling Hga              ( Hga.hs, interpreted )
+    Ok, modules loaded: Hga.
+    *Hga> 4 * (vector [1,0] + vector[2,3]) * (vector[0,1])
+    12.0 + 12.0`e`[1,2]
+    *Hga> test_hga
+    ...
+    Reverse of a trivector is negated passed.
+    vector inverse:
+    +++ OK, passed 100 tests.
 
--- /\ is the wedge product
-> simplify $ V[1,1] /\ V[1,1]
-S 0.0
+Limitations:
 
+    The only numerical type supported is Float, but it probably won't be too
+    hard to change that.
 
-Things to do:
-    See if it's possible to make it more strongly typed.
-    For example, the dot product of two vectors is always a scalar.
+    This module currently represents only Euclidean spaces. I plan to extend it
+    to non-Euclidean spaces by making Multivector a typeclass with a signature
+    method.
 
-    Wedge of colinear elements should be 0.
-        ...
-
-    Definition of spaces.
-        Expressions can be evaluated in a space.  How does that work?  Well, you
-        project into the space defined by some blade B.
-
-        For vectors u and v, you can project u onto v like this:
-            proj_v u
-            = (u . v / ||v||) * v / ||v||
-            = u . v * v / v^2
-            = (u v - u ^ v) inv(v)
-            = u - u^v/v
-            = u - (u v - v u) / v
-            = u - u - v u / v
-            = - v u inv(v)
-            = - v (u / v)
-
-        Is the generalization for blades like this?
-            proj_B u = - B u inv(B)
-
-    Laplace expansion:
-        a . (b /\ c) = a . b c - a . c b
-
-        What's the generalization of this to bigger blades?
-
-    Construction of basis blades:
-        e [] = 1.0 : scalar
-        e [1] : vector
-        e [2] : vector
-        e [1,2] : bivector
-        e [1,2,3] : trivector
-
-    Commutativity of scalars with everything:
-
-    Scaled basis blades:
-        2 `E` [1,2]
-
-    Computation with Geometric products:
-        ...
-
-
-[1] http://en.wikipedia.org/wiki/Geometric_algebra
 

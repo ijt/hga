@@ -1,4 +1,4 @@
-module BladeSum where
+module Hga where
 
 import Data.List
 import qualified Test.QuickCheck as QC
@@ -214,8 +214,8 @@ assertAlmostEqual expected actual msg =
         then putStrLn (msg ++ " passed.")
         else error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual ++ " within tolerance " ++ show tol
 
-main :: IO ()
-main = do
+test_hga :: IO ()
+test_hga = do
     -- Show
     assertEqual "0" (show (BladeSum [])) "Show an empty multivector"
     assertEqual "0" (show (0 :: Mv)) "Show 0"

@@ -1,5 +1,8 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
+-- This module makes it possible to do arithmetic using functions
+-- from Floats to Floats.
+
 import Control.Applicative
 
 -- Floating-point valued functions that take a single float as input.
