@@ -41,9 +41,17 @@ s `e` indices = mvNormalForm $ BladeSum [Blade s indices]
 scalar :: Float -> Mv
 scalar x = x `e` []
 
+-- Scalar extractor.
+-- TESTME.
+scalarPart :: Mv -> Float
+scalarPart x = sum $ map bScale $ mvTerms $ getGrade 0 x
+
 -- Vector constructor
 vector :: [Float] -> Mv
 vector x = mvNormalForm $ BladeSum [Blade xi [i] | (xi, i) <- zip x [1..]]
+
+-- Vector extractor
+-- TODO
 
 instance Num Mv where
     a + b = mvNormalForm $ BladeSum (mvTerms a ++ mvTerms b)
@@ -151,14 +159,14 @@ bDot :: Blade -> Blade -> Blade
 bDot x y =
     bladeNormalForm $ bGetGrade k xy
         where
-            k = (abs (grade x) - (grade y))
+            k = (abs $ (grade x) - (grade y))
             xy = bladeMul x y
 
 bWedge :: Blade -> Blade -> Blade
 bWedge x y =
     bladeNormalForm $ bGetGrade k xy
         where
-            k = (abs (grade x) + (grade y))
+            k = (grade x) + (grade y)
             xy = bladeMul x y
 
 bIsOfGrade :: Blade -> Int -> Bool
@@ -191,7 +199,7 @@ bReverse b = bladeNormalForm $ Blade (bScale b) (reverse $ bIndices b)
 
 -- Approximate equality
 tol :: Float
-tol = 1e-6
+tol = 1e-5
 
 (~=) :: Mv -> Mv -> Bool
 a ~= b = (absDiff a b) <= tol
@@ -201,7 +209,6 @@ absDiff a b = mag $ a - b
 
 -- TESTS
 
--- Copied from Ga.hs
 assertEqual :: (Eq a, Show a) => a -> a -> String -> IO ()
 assertEqual expected actual msg =
     if actual /= expected
@@ -273,6 +280,10 @@ test_hga = do
     assertEqual (-1`e`[1,2]) (mvRev $ 1`e`[1,2]) "Reverse of a bivector is negated"
     assertEqual (-1`e`[1,2,3]) (mvRev $ 1`e`[1,2,3]) "Reverse of a trivector is negated"
 
+    -- Laplace expansion
+    putStrLn "Laplace expansion:"
+    QC.quickCheck prop_laplaceExpansion
+
     -- Inverse
     putStrLn "vector inverse:"
     QC.quickCheck prop_vectorInverse
@@ -296,4 +307,17 @@ prop_vectorInverse coords = (sum $ map abs coords) /= 0 QC.==> (v / v) ~= 1
 
 prop_selfApproxEqual x = scalar x ~= scalar x
     where types = x :: Float
+
+laplaceLeft :: Mv -> Mv -> Mv -> Mv
+laplaceLeft a b c = a `dot` (b `wedge` c)
+
+laplaceRight :: Mv -> Mv -> Mv -> Mv
+laplaceRight a b c = (a `dot` b) * c - (a `dot` c) * b
+
+prop_laplaceExpansion la lb lc = laplaceLeft a b c ~= laplaceRight a b c
+    where
+        a = vector la
+        b = vector lb
+        c = vector lc
+        types = (la::[Float], lb::[Float], lc::[Float])
 
