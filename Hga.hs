@@ -18,36 +18,36 @@ instance Show Mv where
     show a = stringJoin " + " $ map show $ mvTerms a
 
 instance Fractional Mv where
-    fromRational r = BladeSum [Blade (floatFromRational r) []]
+    fromRational r = BladeSum [Blade (doubleFromRational r) []]
     recip x = mvNormalForm $ (scalar $ 1 / (mag x)^2) * mvRev x 
     a / b = mvNormalForm $ a * recip b
 
-floatFromRational :: Rational -> Float
-floatFromRational r = fromRational r
+doubleFromRational :: Rational -> Double
+doubleFromRational r = fromRational r
 
 -- Scaled basis blade: the pseudoscalar for the space it spans.
 -- These should always be returned in normal form.
-data Blade = Blade {bScale :: Float, bIndices :: [Int]} deriving (Ord, Eq)
+data Blade = Blade {bScale :: Double, bIndices :: [Int]} deriving (Ord, Eq)
 
 instance Show Blade where
     show (Blade s []) = show s
     show b = (show $ bScale b) ++ "`e`" ++ (show $ bIndices b)
 
 -- Constructs a multivector from a scaled blade.
-e :: Float -> [Int] -> Mv
+e :: Double -> [Int] -> Mv
 s `e` indices = mvNormalForm $ BladeSum [Blade s indices]
 
 -- Scalar constructor
-scalar :: Float -> Mv
+scalar :: Double -> Mv
 scalar x = x `e` []
 
 -- Scalar extractor.
 -- TESTME.
-scalarPart :: Mv -> Float
+scalarPart :: Mv -> Double
 scalarPart x = sum $ map bScale $ mvTerms $ getGrade 0 x
 
 -- Vector constructor
-vector :: [Float] -> Mv
+vector :: [Double] -> Mv
 vector x = mvNormalForm $ BladeSum [Blade xi [i] | (xi, i) <- zip x [1..]]
 
 -- Vector extractor
@@ -68,7 +68,7 @@ instance Num Mv where
     signum (BladeSum []) = scalar 0
     signum _ = undefined
 
-mag :: Mv -> Float
+mag :: Mv -> Double
 mag mv = sqrt $ sum $ map bladeMag2 $ mvTerms mv
 
 stringJoin :: String -> [String] -> String
@@ -182,13 +182,13 @@ mvExp :: Mv -> Mv
 -- TODO: Find a better way than "`e`[]"
 mvExp x = sum [(1.0 / factorialf k)`e`[] * (x^k) | k <- [0..30]]
 
-factorialf :: Integer -> Float
+factorialf :: Integer -> Double
 factorialf k = fromIntegral $ factorial k
  
 factorial :: Integer -> Integer
 factorial k = product [1..k]
 
-bladeMag2 :: Blade -> Float
+bladeMag2 :: Blade -> Double
 bladeMag2 b = (bScale b)^2
 
 mvRev :: Mv -> Mv
@@ -198,13 +198,13 @@ bReverse :: Blade -> Blade
 bReverse b = bladeNormalForm $ Blade (bScale b) (reverse $ bIndices b)
 
 -- Approximate equality
-tol :: Float
+tol :: Double
 tol = 1e-5
 
 (~=) :: Mv -> Mv -> Bool
 a ~= b = (absDiff a b) <= tol
 
-absDiff :: Mv -> Mv -> Float
+absDiff :: Mv -> Mv -> Double
 absDiff a b = mag $ a - b
 
 -- TESTS
@@ -220,6 +220,16 @@ assertAlmostEqual expected actual msg =
     if expected ~= actual
         then putStrLn (msg ++ " passed.")
         else error $ msg ++ ": " ++ show expected ++ " /= " ++ show actual ++ " within tolerance " ++ show tol
+
+g encodedIndices = BladeSum $ [Blade 1.0 indices]
+    where indices = decode encodedIndices
+
+decode :: Int -> [Int]
+decode = reverse . revDecode
+    where
+        revDecode :: Int -> [Int]
+        revDecode 0 = []
+        revDecode n = n `mod` 10 : revDecode (n `div` 10)
 
 test_hga :: IO ()
 test_hga = do
@@ -266,13 +276,9 @@ test_hga = do
     putStrLn "Everything approximately equals itself."
     QC.quickCheck prop_selfApproxEqual
 
-    -- Exponentiation, other Floating typeclass functions.
-    -- http://www.haskell.org/onlinereport/basic.html
-    assertAlmostEqual 1.0 (mvExp 0) "Exponential of 0"
-    assertAlmostEqual 2.7182818284 (mvExp 1) "Exponential of 1"
-    assertAlmostEqual 22026.465794806718 (mvExp 10) "Exponential of 10"
-    -- Fixme: Need Floating instance for Mv to make the next line look better.
-    assertAlmostEqual (-1) (mvExp (i*pi`e`[])) "Exponential of i"
+    -- Exponentiation
+    putStrLn "Exponential:"
+    QC.quickCheck prop_exponential
 
     -- Reverse
     assertEqual 1 (mvRev 1) "Reverse of a scalar is the same"
@@ -303,10 +309,10 @@ test_hga = do
 prop_vectorInverse coords = (sum $ map abs coords) /= 0 QC.==> (v / v) ~= 1
     where 
         v = vector coords 
-        types = (coords :: [Float])
+        types = (coords :: [Double])
 
 prop_selfApproxEqual x = scalar x ~= scalar x
-    where types = x :: Float
+    where types = x :: Double
 
 laplaceLeft :: Mv -> Mv -> Mv -> Mv
 laplaceLeft a b c = a `dot` (b `wedge` c)
@@ -314,10 +320,20 @@ laplaceLeft a b c = a `dot` (b `wedge` c)
 laplaceRight :: Mv -> Mv -> Mv -> Mv
 laplaceRight a b c = (a `dot` b) * c - (a `dot` c) * b
 
+ll a b c = laplaceLeft (v a) (v b) (v c)
+lr a b c = laplaceRight (v a) (v b) (v c)
+v = vector
+
 prop_laplaceExpansion la lb lc = laplaceLeft a b c ~= laplaceRight a b c
     where
         a = vector la
         b = vector lb
         c = vector lc
-        types = (la::[Float], lb::[Float], lc::[Float])
+        types = (la::[Double], lb::[Double], lc::[Double])
+
+prop_exponential x = abs (e1 - e2) < 1e-5
+    where
+        e1 = exp x
+        e2 = scalarPart $ mvExp $ scalar x
+        types = x :: Double
 

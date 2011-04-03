@@ -1,3 +1,6 @@
+Make Mv an instance of the Floating typeclass
+    http://www.haskell.org/onlinereport/basic.html
+
 See if it's possible to make it more strongly typed.
 For example, the dot product of two vectors is always a scalar.
 
