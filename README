@@ -1,7 +1,6 @@
 HGA: Haskell Geometric Algebra
 issac.trotts@gmail.com
 Issac Trotts
-============
 
 This is an implementation of Geometric Algebra, also known as Clifford
 Algebra. For ideas on how to use it, see
@@ -23,11 +22,10 @@ Examples:
 
 Limitations:
 
-    The only numerical type supported is Float, but it probably won't be too
-    hard to change that.
+    For now, the only numerical type allowed for coordinates is Double. I'll
+    probably change it to arbitrary Nums later on.
 
     This module currently represents only Euclidean spaces. I plan to extend it
     to non-Euclidean spaces by making Multivector a typeclass with a signature
     method.
-
 
