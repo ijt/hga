@@ -1,4 +1,5 @@
 module Hga where
+-- TODO: Explicitly export.
 
 import Data.List
 import qualified Test.QuickCheck as QC
@@ -22,8 +23,21 @@ instance Fractional Mv where
     recip x = mvNormalForm $ (scalar $ 1 / (mag x)^2) * mvRev x 
     a / b = mvNormalForm $ a * recip b
 
-doubleFromRational :: Rational -> Double
-doubleFromRational r = fromRational r
+instance Ord Mv where
+    a < b =
+        a `mustBeScalarIn`
+            (b `mustBeScalarIn`
+                (scalarPart a) < (scalarPart b))
+    a <= b =
+        a `mustBeScalarIn`
+            (b `mustBeScalarIn`
+                (scalarPart a) <= (scalarPart b))
+
+mustBeScalarIn :: Mv -> a -> a
+x `mustBeScalarIn` expr =
+    if not $ isScalar x
+        then error $ show x ++ " is not a scalar"
+        else expr
 
 -- Scaled basis blade: the pseudoscalar for the space it spans.
 -- These should always be returned in normal form.
@@ -32,6 +46,12 @@ data Blade = Blade {bScale :: Double, bIndices :: [Int]} deriving (Ord, Eq)
 instance Show Blade where
     show (Blade s []) = show s
     show b = (show $ bScale b) ++ "`e`" ++ (show $ bIndices b)
+
+doubleFromRational :: Rational -> Double
+doubleFromRational r = fromRational r
+
+isScalar :: Mv -> Bool
+isScalar mv = grades mv == [0]
 
 -- Constructs a multivector from a scaled blade.
 e :: Double -> [Int] -> Mv
@@ -135,7 +155,7 @@ findFixedPoint f x =
   if y == x then y else findFixedPoint f y
   where y = f x
 
--- The grade extraction operator
+-- Extracts the k-vector part of a multivector.
 getGrade :: Int -> Mv -> Mv
 getGrade k mv =
     BladeSum $ filter (`bIsOfGrade` k) (mvTerms mv)
@@ -147,6 +167,12 @@ dot a b =
 wedge :: Mv -> Mv -> Mv
 wedge a b =
     mvNormalForm $ BladeSum [x `bWedge` y | x <- mvTerms a, y <- mvTerms b]
+
+grades :: Mv -> [Int]
+-- I'm treating the empty multivector as equivalent to scalar zero, but
+-- it seems to complicate things.
+grades (BladeSum []) = [0]
+grades a = nub $ map grade $ mvTerms a
 
 grade :: Blade -> Int
 grade b = length $ bIndices b
@@ -179,11 +205,27 @@ i = 1`e`[1,2]
 
 -- Multivector exponential
 mvExp :: Mv -> Mv
--- TODO: Find a better way than "`e`[]"
-mvExp x = sum [(1.0 / factorialf k)`e`[] * (x^k) | k <- [0..30]]
+mvExp x = sumLimit 1e-10 $ mvExpTerms x
+mvExpTerms x = [(x^k) / (factorialMv k) | k <- [0..]]
 
-factorialf :: Integer -> Double
-factorialf k = fromIntegral $ factorial k
+sumLimit :: (Ord a, Num a) => a -> [a] -> a
+sumLimit tol terms =
+    numericalLimit tol $ cumsum terms 
+
+-- Cumulative sum
+cumsum :: Num a => [a] -> [a]
+cumsum xs = scanl1 (+) xs
+
+-- Guesses the limit of a sequence by finding the first adjacent pair of numbers
+-- in it that differ by less than a given tolerance.
+numericalLimit :: (Ord a, Num a) => a -> [a] -> a
+numericalLimit tol [] = undefined
+numericalLimit tol [x] = x
+numericalLimit tol (x:y:xs) | abs(x - y) <= tol = y
+                            | otherwise = numericalLimit tol (y:xs)
+
+factorialMv :: Integer -> Mv
+factorialMv k = fromIntegral $ factorial k
  
 factorial :: Integer -> Integer
 factorial k = product [1..k]
@@ -276,6 +318,10 @@ test_hga = do
     putStrLn "Everything approximately equals itself."
     QC.quickCheck prop_selfApproxEqual
 
+    -- Cumulative sum
+    putStrLn "cumsum:"
+    QC.quickCheck prop_cumsum
+
     -- Exponentiation
     putStrLn "Exponential:"
     QC.quickCheck prop_exponential
@@ -296,8 +342,8 @@ test_hga = do
 
     -- Cross product
  
-    -- Projection
-    
+    -- Projection and rejection
+   
     -- Rotation by spinors
    
     -- Conversion to and from complex numbers
@@ -305,6 +351,13 @@ test_hga = do
     -- Easier construction of vectors. ga [1,2,3]
 
     -- Parsing of a little expression language
+
+-- Less efficient version of cumsum for testing
+cumsum2 :: [Double] -> [Double]
+cumsum2 ls = map sum [take k ls|k <- [1..length ls]]
+
+prop_cumsum ls = length ls > 0 QC.==> cumsum ls == cumsum2 ls
+    where types = (ls :: [Double])
 
 prop_vectorInverse coords = (sum $ map abs coords) /= 0 QC.==> (v / v) ~= 1
     where 
@@ -331,7 +384,7 @@ prop_laplaceExpansion la lb lc = laplaceLeft a b c ~= laplaceRight a b c
         c = vector lc
         types = (la::[Double], lb::[Double], lc::[Double])
 
-prop_exponential x = abs (e1 - e2) < 1e-5
+prop_exponential x = abs (e1 / e2 - 1) < 1e-5
     where
         e1 = exp x
         e2 = scalarPart $ mvExp $ scalar x
